@@ -1,0 +1,7 @@
+"0","#| message: false"
+"0",""
+"0","# Convert both datasets to sf spatial objects"
+"0","stations_sf <- inaccessible %>%"
+"0","  st_as_sf(coords = c(""GTFS Longitude"", ""GTFS Latitude""), crs = 4326)"
+"2","Error in `[.data.frame`(x, coords) : undefined columns selected
+"
