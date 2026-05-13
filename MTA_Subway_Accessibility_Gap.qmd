@@ -483,7 +483,8 @@ tibble(
   theme(legend.position = "none")
 ```
 
-**Interpretation.** With a p-value of `r format.pval(prop_test$p.value, digits = 3)`, we `r ifelse(prop_test$p.value < 0.05, "**reject H₀**", "**fail to reject H₀**")` at α = 0.05. `r ifelse(prop_test$p.value < 0.05, "Manhattan has a statistically significantly higher accessibility rate than the outer boroughs — confirming that accessibility investment has not been equitably distributed across the system.", "We do not find a statistically significant difference between Manhattan and the outer boroughs in this test.")`
+**Interpretation.**
+With a p-value of `r format.pval(prop_test$p.value, digits = 3)`, we `r ifelse(prop_test$p.value < 0.05, "**reject H₀**", "**fail to reject H₀**")` at α = 0.05. `r ifelse(prop_test$p.value < 0.05, "Manhattan has a statistically significantly higher accessibility rate than the outer boroughs — confirming that accessibility investment has not been equitably distributed across the system.", "We do not find a statistically significant difference between Manhattan and the outer boroughs in this test.")`
 ------------------------------------------------------------------------
 
 ```{r}
