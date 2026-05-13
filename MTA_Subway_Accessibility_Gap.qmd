@@ -9,7 +9,6 @@ format:
     theme: cosmo
 editor: visual
 ---
-
 ## Reason for This Analysis
 
 New York City's subway system is one of the largest in the world, yet it remains one of the least accessible among major global transit networks. As of 2026, only about 31% of the system's 493 subway and Staten Island Railway stations are fully ADA-compliant, leaving hundreds of stations unreachable for riders who use wheelchairs, strollers, or other mobility devices. This gap disproportionately affects outer-borough communities, seniors, and people with disabilities.
@@ -18,7 +17,7 @@ This analysis aims to:
 
 1.  Quantify the accessibility gap across the MTA subway system by borough and line
 2.  Estimate the funding required to bring non-compliant stations up to ADA standard
-3.  Identify stations near high-density development parcels that may qualify for the City's **Zoning for Accessibility (ZFA)** program — a public-private partnership where developers receive a density bonus of up to 20% in exchange for funding elevator and accessibility construction at nearby stations
+3.  Identify stations near high-density development parcels that may qualify for the City's **Zoning for Accessibility (ZFA)** program which is a public-private partnership where developers receive a density bonus of up to 20% in exchange for funding elevator and accessibility construction at nearby stations
 
 The ZFA angle is particularly important: it represents a mechanism to close the funding gap without relying entirely on the MTA Capital Plan, and mapping its potential has direct policy implications.
 
@@ -59,11 +58,8 @@ library(jsonlite)
 mta <- read_csv("https://raw.githubusercontent.com/MuhammadAhmad0006/Data607_Final_Project_/refs/heads/main/MTA_Subway_Stations.csv")
 
 # Load filtered PLUTO data (CSV)
-# Note: The full NYC PLUTO dataset is ~860K rows and 428MB - too large to process
-# inside a QMD. As a pre-processing step performed separately in Python (pandas),
-# it was filtered to only high-density zoning parcels (C4, C5, C6, R9, R10, M1-M3)
-# within ~500m of an inaccessible MTA station, yielding 26,143 rows x 17 columns.
-pluto <- read_csv("https://raw.githubusercontent.com/MuhammadAhmad0006/Data607_Final_Project_/refs/heads/main/PLUTO_filtered_near_inaccessible_stations.csv")
+# Note: The full NYC PLUTO dataset is ~860K rows and 428MB - too large to process inside a QMD. As a pre-processing step performed separately in Python (pandas), it was filtered to only high-density zoning parcels (C4, C5, C6, R9, R10, M1-M3) within ~500m of an inaccessible MTA station, yielding 26,143 rows x 17 columns.
+pluto <- read.csv("https://raw.githubusercontent.com/MuhammadAhmad0006/Data607_Final_Project_/refs/heads/main/PLUTO_filtered_near_inaccessible_stations.csv")
 
 cat("PLUTO parcels loaded:", nrow(pluto), "rows,", ncol(pluto), "columns\n")
 
@@ -109,7 +105,7 @@ cat("Fully accessible stations:", sum(mta$ADA == 1), "\n")
 
 ### Wide-to-Long Transformation
 
-The borough accessibility counts start in **wide format** (one column per ADA status). We pivot to **long format** for flexible plotting and analysis — this follows Hadley Wickham's tidy data principles covered in the Grammar of Data Science workflow.
+The borough accessibility counts start in **wide format** (one column per ADA status). I pivot to **long format** for flexible plotting and analysis
 
 ```{r}
 # Build wide format: one row per borough, one column per ADA status
@@ -159,23 +155,24 @@ mta %>%
   ) %>%
   rename(`ADA Status` = ada_status, `# Stations` = n, `% of System` = Percent) %>%
   kable(caption = "MTA Subway Station Accessibility Status") %>%
-  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+  kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 ```{r}
 #| fig-cap: "MTA Subway Station Accessibility by Status"
-
+#| fig-height: 5
+#| fig-width: 7
 mta %>%
   count(ada_status) %>%
   ggplot(aes(x = reorder(ada_status, -n), y = n, fill = ada_status)) +
   geom_col(width = 0.6) +
   geom_text(aes(label = paste0(n, "\n(", round(n/sum(n)*100,1), "%)")), 
             vjust = -0.4, size = 3.5) +
-  scale_fill_manual(values = c("Fully Accessible" = "#2ecc71",
-                                "Partially Accessible" = "#f39c12",
-                                "Not Accessible" = "#e74c3c")) +
+  scale_fill_manual(values = c("Fully Accessible" = "seagreen",
+                                "Partially Accessible" = "darkorange",
+                                "Not Accessible" = "firebrick")) +
   labs(title = "MTA Subway Station Accessibility Status",
-       x = NULL, y = "Number of Stations") +
+       x = NULL, y = "Number of Stations", fill = NULL) +
   theme_minimal() +
   theme(legend.position = "none")
 ```
@@ -191,9 +188,9 @@ borough_long %>%
   geom_col(position = "stack") +
   geom_text(aes(label = ifelse(station_count > 5, station_count, "")),
             position = position_stack(vjust = 0.5), size = 3, color = "white") +
-  scale_fill_manual(values = c("Fully Accessible" = "#2ecc71",
-                                "Partially Accessible" = "#f39c12",
-                                "Not Accessible" = "#e74c3c")) +
+  scale_fill_manual(values = c("Fully Accessible" = "seagreen",
+                                "Partially Accessible" = "darkorange",
+                                "Not Accessible" = "firebrick")) +
   labs(title = "Subway Station Accessibility by Borough",
        x = NULL, y = "Number of Stations", fill = "ADA Status") +
   theme_minimal()
@@ -218,13 +215,16 @@ mta %>%
 
 ## Funding Gap Estimation
 
-The MTA's capital program and legal settlements give us cost benchmarks for accessibility upgrades. Based on publicly available MTA capital plan data:
+The MTA's own capital plans give us defensible cost benchmarks for accessibility upgrades:
 
-- **Average cost per station accessibility upgrade**: \~\$50–\$80 million (full elevator installation + ADA compliance work)
-- We use **\$65 million** as a midpoint estimate
+- **2020–2024 Capital Plan**: \$5.2 billion for 67 stations = **\~\$77.6 million per station** ([MTA Station Accessibility Projects](https://www.mta.info/project/station-accessibility-upgrades))
+- **2025–2029 Capital Plan**: \$7.1 billion for 66 stations = **\~\$107.6 million per station** (cited in Wikipedia, sourced from MTA capital plan documents)
+- **Independent analysis** (Nolan Hicks, NYU Marron Institute, *Vital City*, 2024): **\~\$110 million per station** on average
+
+I used **\$78 million** as my central estimate (anchored to the 2020–2024 Capital Plan average) and run a sensitivity analysis at the higher end below.
 
 ```{r}
-cost_per_station <- 65e6  # $65 million estimate
+cost_per_station <- 78e6  # $78M — anchored to MTA 2020-2024 Capital Plan: $5.2B / 67 stations
 
 funding_summary <- mta %>%
   filter(ADA == 0) %>%
@@ -244,9 +244,36 @@ funding_summary <- mta %>%
 funding_summary %>%
   mutate(`Estimated Cost ($ Millions)` = dollar(`Estimated Cost ($ Millions)`, 
                                                   suffix = "M", prefix = "$")) %>%
-  kable(caption = paste("Estimated Funding Required at $65M per Station")) %>%
+  kable(caption = "Estimated Funding Required at $78M per Station (2020-2024 Capital Plan average)") %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
 ```
+
+### Sensitivity Analysis
+
+To bracket the uncertainty, I compute the total bill under three scenarios — the conservative 2020–2024 Capital Plan average, the higher 2025–2029 Capital Plan average, and the Hicks/Marron Institute analysis.
+
+```{r}
+n_inaccessible <- sum(mta$ADA == 0)
+
+sensitivity <- tibble(
+  Scenario = c("Low: 2020-2024 Capital Plan average",
+               "Mid: 2025-2029 Capital Plan average",
+               "High: Hicks/NYU Marron analysis"),
+  `Cost per Station` = c("$78M", "$108M", "$110M"),
+  `Inaccessible Stations` = n_inaccessible,
+  `Total Cost ($B)` = c(
+    round(n_inaccessible * 78e6  / 1e9, 1),
+    round(n_inaccessible * 108e6 / 1e9, 1),
+    round(n_inaccessible * 110e6 / 1e9, 1)
+  )
+)
+
+sensitivity %>%
+  kable(caption = "Total cost to retrofit all inaccessible stations under three pricing scenarios") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+
+Whichever benchmark you use, the bill far exceeds what any single MTA capital cycle can absorb — which is why alternative financing mechanisms like Zoning for Accessibility matter.
 
 ------------------------------------------------------------------------
 
@@ -326,7 +353,7 @@ top_stations %>%
 
 ------------------------------------------------------------------------
 
-## Statistical Analysis: Is Accessibility Distributed Equally Across Boroughs?
+## Hypothesis Test 1: Is Accessibility Distributed Equally Across Boroughs?
 
 A chi-square goodness-of-fit test lets us determine whether the distribution of inaccessible stations across boroughs is statistically different from what we'd expect if accessibility were distributed proportionally to each borough's share of total stations.
 
@@ -353,30 +380,110 @@ chi_result <- chisq.test(
 chi_result
 ```
 
-```{r}
-# Visualize observed vs expected
-observed %>%
-  mutate(
-    expected    = round(expected_counts),
-    diff        = inaccessible - expected
-  ) %>%
-  pivot_longer(cols = c(inaccessible, expected),
-               names_to = "type", values_to = "count") %>%
-  mutate(type = recode(type,
-                       "inaccessible" = "Observed Inaccessible",
-                       "expected"     = "Expected (if uniform rate)")) %>%
-  ggplot(aes(x = borough_full, y = count, fill = type)) +
-  geom_col(position = "dodge") +
-  scale_fill_manual(values = c("Observed Inaccessible" = "#e74c3c",
-                                "Expected (if uniform rate)" = "#95a5a6")) +
-  labs(title = "Observed vs. Expected Inaccessible Stations by Borough",
-       subtitle = paste0("Chi-square test: p = ", round(chi_result$p.value, 4)),
-       x = NULL, y = "Number of Inaccessible Stations", fill = NULL) +
-  theme_minimal()
-```
-
 The chi-square result tells us whether the boroughs differ significantly in their accessibility rates beyond what chance alone would predict. A p-value below 0.05 would indicate that some boroughs are systematically underserved relative to their size.
 
+------------------------------------------------------------------------
+
+
+## Hypothesis Test 2: Is Manhattan's Accessibility Rate Higher Than Outer Boroughs?
+
+The borough-level chi-square above showed the accessibility gap is not distributed evenly. This second test asks the pointed equity question directly: does Manhattan — the wealthiest, most-visited borough — have a significantly higher rate of fully accessible stations than the outer boroughs?
+
+**Hypotheses (α = 0.05):**
+
+- **H₀ (null):** The proportion of fully accessible stations in Manhattan equals the proportion in the outer boroughs (Brooklyn, Queens, Bronx, Staten Island combined).
+- **H₁ (alternative):** Manhattan has a significantly higher accessibility rate than the outer boroughs.
+
+```{r}
+# --- Diagnostic: figure out what's actually in the data before testing ---
+cat("Class of mta$ADA: ", class(mta$ADA), "\n", sep = "")
+cat("Unique ADA values: ", paste(sort(unique(as.character(mta$ADA))), collapse = ", "), "\n\n")
+
+cat("Unique borough_full values: ",
+    paste(sort(unique(mta$borough_full)), collapse = ", "), "\n", sep = "")
+
+cat("\nStation count by borough:\n")
+print(table(mta$borough_full))
+
+cat("\nADA breakdown by borough:\n")
+print(table(mta$borough_full, mta$ADA, useNA = "ifany"))
+```
+
+```{r}
+# --- Auto-detect which ADA value means "fully accessible" ---
+# Strategy: whatever value has ~160 stations (matches the slide 7 chart)
+ada_tab <- table(mta$ADA)
+cat("ADA value counts:\n"); print(ada_tab)
+
+# "Fully accessible" should be ~160 stations (32% of 496). Pick the closest match.
+fully_code <- names(ada_tab)[which.min(abs(as.numeric(ada_tab) - 160))]
+cat("\nUsing ADA ==", shQuote(fully_code), "as 'fully accessible'\n")
+
+# Coerce both sides to character so it works whether ADA is numeric or character
+mta_test <- mta %>% mutate(ada_chr = as.character(ADA))
+
+# --- Split groups ---
+manhattan <- mta_test %>% filter(borough_full == "Manhattan")
+outer     <- mta_test %>% filter(borough_full != "Manhattan")
+
+stopifnot(
+  "No Manhattan stations found — check borough_full values"        = nrow(manhattan) > 0,
+  "No outer-borough stations found — check borough_full values"    = nrow(outer)     > 0
+)
+
+n_man   <- nrow(manhattan)
+n_outer <- nrow(outer)
+acc_man <- sum(manhattan$ada_chr == fully_code)
+acc_out <- sum(outer$ada_chr     == fully_code)
+
+rate_man   <- acc_man / n_man
+rate_outer <- acc_out / n_outer
+
+cat("\nManhattan:      ", acc_man, "/", n_man, " fully accessible (",
+    round(rate_man * 100, 1), "%)\n", sep = "")
+cat("Outer boroughs: ", acc_out, "/", n_outer, " fully accessible (",
+    round(rate_outer * 100, 1), "%)\n", sep = "")
+
+stopifnot(
+  "Manhattan has 0 accessible stations — won't run z-test"  = acc_man > 0,
+  "Outer boroughs have 0 accessible stations — won't run"   = acc_out > 0
+)
+```
+
+```{r}
+# --- Two-proportion z-test (one-sided: Manhattan > outer) ---
+prop_test <- prop.test(
+  x = c(acc_man, acc_out),
+  n = c(n_man,   n_outer),
+  alternative = "greater",
+  correct = FALSE
+)
+
+prop_test
+```
+
+```{r}
+#| fig-cap: "Accessibility rate comparison: Manhattan vs. outer boroughs"
+
+tibble(
+  Group = c("Manhattan", "Outer Boroughs"),
+  Rate  = c(rate_man, rate_outer)
+) %>%
+  ggplot(aes(x = Group, y = Rate, fill = Group)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = paste0(round(Rate * 100, 1), "%")),
+            vjust = -0.5, size = 5, fontface = "bold") +
+  scale_y_continuous(labels = percent_format(), limits = c(0, 1)) +
+  scale_fill_manual(values = c("Manhattan" = "#0039A6", "Outer Boroughs" = "#EE352E")) +
+  labs(title = "Proportion of Fully Accessible Stations",
+       subtitle = paste0("Two-proportion z-test: p = ",
+                         format.pval(prop_test$p.value, digits = 3)),
+       x = NULL, y = "Fully Accessible Rate") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+**Interpretation.** With a p-value of `r format.pval(prop_test$p.value, digits = 3)`, we `r ifelse(prop_test$p.value < 0.05, "**reject H₀**", "**fail to reject H₀**")` at α = 0.05. `r ifelse(prop_test$p.value < 0.05, "Manhattan has a statistically significantly higher accessibility rate than the outer boroughs — confirming that accessibility investment has not been equitably distributed across the system.", "We do not find a statistically significant difference between Manhattan and the outer boroughs in this test.")`
 ------------------------------------------------------------------------
 
 ```{r}
@@ -420,11 +527,15 @@ This analysis reveals several key findings:
 
 1.  **The accessibility gap is large**: `r total_inaccessible` of `r nrow(mta)` subway stations — over 65% of the system — lack full ADA accessibility.
 
-2.  **The funding need is enormous**: At an estimated $65 million per station, full compliance would cost approximately **$`r round(total_cost, 1)` billion\*\* — far exceeding what the MTA can deliver through its Capital Plan alone.
+2.  **The funding need is enormous**: At our central estimate of \$78 million per station (anchored to the MTA's 2020–2024 Capital Plan average), full compliance would cost approximately **\$`r round(total_cost, 1)` billion**. Under higher recent benchmarks (\$108–\$110M per station from the 2025–2029 Capital Plan and Hicks/NYU analysis), the bill rises to **\$`r round(total_inaccessible * 110e6 / 1e9, 1)` billion** — far beyond what any single MTA capital cycle can absorb.
 
-3.  **The ZFA program has significant untapped potential**: `r zfa_stations` currently inaccessible stations have high-density development parcels within 500 meters, representing real opportunities for private developers to fund accessibility upgrades in exchange for density bonuses.
+3.  **The gap is structural, not random** (*Test 1 — chi-square goodness-of-fit*): p = `r round(chi_result$p.value, 4)`. `r ifelse(chi_result$p.value < 0.05, "We reject H₀ — inaccessibility is not proportionally distributed across boroughs.", "We fail to reject H₀.")` Some boroughs are systematically underserved relative to their station count.
 
-4.  **Brooklyn and Manhattan have the highest absolute need**, though all five boroughs have significant gaps. Outer boroughs like the Bronx and Staten Island have proportionally fewer accessible stations despite high ridership need.
+4.  **Manhattan gets better access** (*Test 2 — two-proportion z-test*): p = `r format.pval(prop_test$p.value, digits = 3)`. `r ifelse(prop_test$p.value < 0.05, "We reject H₀ — Manhattan has a significantly higher accessibility rate than the outer boroughs, confirming inequitable investment.", "We fail to reject H₀.")`
+
+5.  **Even accessible stations face reliability issues**: At the time of this analysis, `r nrow(elevator_outages)` elevators and escalators were currently out of service across the system — accessibility on paper is not accessibility in practice.
+
+6.  **The ZFA program has significant untapped potential**: `r zfa_stations` currently inaccessible stations have high-density development parcels within 500 meters, representing real opportunities for private developers to fund accessibility upgrades in exchange for density bonuses.
 
 The ZFA program, if fully leveraged, could meaningfully accelerate the MTA's goal of reaching 95% accessibility by 2055 — at no direct cost to taxpayers.
 
@@ -434,6 +545,10 @@ The ZFA program, if fully leveraged, could meaningfully accelerate the MTA's goa
 
 - MTA Subway Stations dataset: [data.ny.gov](https://data.ny.gov)
 - NYC PLUTO dataset: [NYC Open Data](https://data.cityofnewyork.us)
+- MTA Elevator and Escalator Outages API: [data.ny.gov/resource/rc5b-x5jp](https://data.ny.gov/resource/rc5b-x5jp.json)
 - MTA Zoning for Accessibility program: [mta.info/accessibility/zoning-for-accessibility](https://www.mta.info/accessibility/zoning-for-accessibility)
+- MTA Station Accessibility Projects (2020–2024 Capital Plan, \$5.2B for 67 stations): [mta.info/project/station-accessibility-upgrades](https://www.mta.info/project/station-accessibility-upgrades)
+- 2025–2029 Capital Plan accessibility costs (\$7.1B for 66 stations): summarized in [Wikipedia — Accessibility of the MTA](https://en.wikipedia.org/wiki/Accessibility_of_the_Metropolitan_Transportation_Authority)
+- Hicks, Nolan. "Waiting for the Elevators" (2024), *Vital City* — independent analysis of MTA accessibility costs averaging \~\$110M per station: [vitalcitynyc.org](https://www.vitalcitynyc.org/articles/waiting-for-the-elevators-mta-long-road-to-accessible-wheelchair-system)
 - NYC Council Data Team — Increasing Accessibility: [council.nyc.gov/data/increasing-accessibility](https://council.nyc.gov/data/increasing-accessibility/)
 - Governor Hochul MTA Accessibility Announcement, December 2025
